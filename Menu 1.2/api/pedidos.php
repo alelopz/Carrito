@@ -15,25 +15,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt = $pdo->prepare("INSERT INTO pedidos (id_usuario, id_clientes, id_mesa, estado, total, comentarios) 
                                          VALUES (?, ?, ?, 'En preparación', ?, ?)");
                     $stmt->execute([
-                        $data['id_usuario'],
-                        $data['id_cliente'],
-                        $data['id_mesa'],
-                        $data['total'],
+                        $data['id_usuario'] ?? 1,
+                        $data['id_cliente'] ?? 'cliente_default',
+                        $data['id_mesa'] ?? 1,
+                        $data['total'] ?? 0,
                         $data['comentarios'] ?? ''
                     ]);
                     $id_pedido = $pdo->lastInsertId();
 
                     // Crear los detalles del pedido
-                    $stmt = $pdo->prepare("INSERT INTO detalle_pedidos (id_pedidos, id_producto, cantidad, precio_unitario) 
-                                         VALUES (?, ?, ?, ?)");
-                    
-                    foreach ($data['items'] as $item) {
-                        $stmt->execute([
-                            $id_pedido,
-                            $item['id_producto'],
-                            $item['cantidad'],
-                            $item['precio_unitario']
-                        ]);
+                    if (isset($data['items']) && is_array($data['items'])) {
+                        $stmt = $pdo->prepare("INSERT INTO detalle_pedidos (id_pedidos, id_producto, cantidad, precio_unitario) 
+                                             VALUES (?, ?, ?, ?)");
+                        
+                        foreach ($data['items'] as $item) {
+                            $stmt->execute([
+                                $id_pedido,
+                                $item['id_producto'],
+                                $item['cantidad'],
+                                $item['precio_unitario']
+                            ]);
+                        }
                     }
 
                     // Registrar el pago
@@ -41,9 +43,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                          VALUES (?, ?, ?, 'Pagado', ?)");
                     $stmt->execute([
                         $id_pedido,
-                        $data['id_usuario'],
-                        $data['id_metodo_pago'],
-                        $data['total']
+                        $data['id_usuario'] ?? 1,
+                        $data['id_metodo_pago'] ?? 1,
+                        $data['total'] ?? 0
                     ]);
 
                     $pdo->commit();
@@ -56,9 +58,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
 
             case 'actualizar_estado':
-                $stmt = $pdo->prepare("UPDATE pedidos SET estado = ? WHERE id_pedidos = ?");
-                $stmt->execute([$data['estado'], $data['id_pedido']]);
-                echo json_encode(['success' => true]);
+                try {
+                    $stmt = $pdo->prepare("UPDATE pedidos SET estado = ? WHERE id_pedidos = ?");
+                    $stmt->execute([$data['estado'], $data['id_pedido']]);
+                    echo json_encode(['success' => true]);
+                } catch (Exception $e) {
+                    http_response_code(500);
+                    echo json_encode(['error' => 'Error al actualizar el estado: ' . $e->getMessage()]);
+                }
                 break;
 
             default:
@@ -70,23 +77,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo json_encode(['error' => 'Acción no especificada']);
     }
 } else if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    if (isset($_GET['id_pedido'])) {
-        // Obtener detalles de un pedido específico
-        $stmt = $pdo->prepare("
-            SELECT p.*, dp.*, pr.nombre, pr.img, pr.descripcion 
-            FROM pedidos p 
-            JOIN detalle_pedidos dp ON p.id_pedidos = dp.id_pedidos 
-            JOIN productos pr ON dp.id_producto = pr.id_producto 
-            WHERE p.id_pedidos = ?
-        ");
-        $stmt->execute([$_GET['id_pedido']]);
-        $pedido = $stmt->fetchAll();
-        echo json_encode($pedido);
-    } else {
-        // Obtener todos los pedidos
-        $stmt = $pdo->query("SELECT * FROM pedidos ORDER BY fecha DESC");
-        $pedidos = $stmt->fetchAll();
-        echo json_encode($pedidos);
+    try {
+        if (isset($_GET['id_pedido'])) {
+            // Obtener detalles de un pedido específico
+            $stmt = $pdo->prepare("
+                SELECT p.*, dp.*, pr.nombre, pr.img, pr.descripcion 
+                FROM pedidos p 
+                JOIN detalle_pedidos dp ON p.id_pedidos = dp.id_pedidos 
+                JOIN productos pr ON dp.id_producto = pr.id_producto 
+                WHERE p.id_pedidos = ?
+            ");
+            $stmt->execute([$_GET['id_pedido']]);
+            $pedido = $stmt->fetchAll();
+            echo json_encode($pedido);
+        } else {
+            // Obtener todos los pedidos
+            $stmt = $pdo->query("SELECT * FROM pedidos ORDER BY fecha DESC");
+            $pedidos = $stmt->fetchAll();
+            echo json_encode($pedidos);
+        }
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Error al obtener pedidos: ' . $e->getMessage()]);
     }
 } else {
     http_response_code(405);

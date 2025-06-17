@@ -24,6 +24,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnCerrarCarrito = document.getElementById('btnCerrarCarrito');
     const btnCerrarCarritoX = document.getElementById('btnCerrarCarritoX');
 
+    // Función para verificar si un elemento existe
+    function elementoExiste(elemento) {
+        return elemento !== null;
+    }
+
+    // Función para obtener la URL de la imagen
+    function obtenerImagenUrl(img) {
+        return img || 'img/default.jpg';
+    }
+
     // Inicializar carrito
     async function inicializarCarrito() {
         try {
@@ -55,6 +65,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function renderizarProductosPorCategoria(categoria) {
+        if (!elementoExiste(menuProductos)) return;
+
         menuProductos.innerHTML = '';
         let filtrados = categoria === 'todas' ? todosLosProductos : todosLosProductos.filter(p => (p.categoria || '').toLowerCase() === categoria.toLowerCase());
         if (filtrados.length === 0) {
@@ -64,7 +76,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const productoHTML = `
                 <div class="col-md-6 col-lg-4">
                     <div class="card producto-card">
-                        <img src="${producto.img}" class="card-img-top producto-imagen" alt="${producto.nombre}">
+                        <img src="${obtenerImagenUrl(producto.img)}" class="card-img-top producto-imagen" alt="${producto.nombre}" onerror="this.src='img/default.jpg'">
                         <div class="card-body">
                             <h5 class="card-title">${producto.nombre}</h5>
                             <p class="card-text">${producto.descripcion}</p>
@@ -160,6 +172,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     async function actualizarCarrito() {
+        if (!elementoExiste(carritoItems)) return;
+
         carritoItems.innerHTML = '';
         let total = 0;
         let contador = 0;
@@ -169,7 +183,7 @@ document.addEventListener('DOMContentLoaded', function () {
             total += item.precio * item.cantidad;
             const itemHTML = `
                 <div class="carrito-item">
-                    <img src="${item.img}" alt="${item.nombre}">
+                    <img src="${obtenerImagenUrl(item.img)}" alt="${item.nombre}" onerror="this.src='img/default.jpg'">
                     <div class="carrito-info">
                         <h6>${item.nombre}</h6>
                         <p>$${item.precio}</p>
@@ -184,8 +198,12 @@ document.addEventListener('DOMContentLoaded', function () {
             carritoItems.innerHTML += itemHTML;
         });
 
-        totalCarrito.textContent = `$${total.toFixed(2)}`;
-        carritoContador.textContent = contador;
+        if (elementoExiste(totalCarrito)) {
+            totalCarrito.textContent = `$${total.toFixed(2)}`;
+        }
+        if (elementoExiste(carritoContador)) {
+            carritoContador.textContent = contador;
+        }
         mostrarCartelVerCarrito();
     }
 
@@ -243,7 +261,7 @@ document.addEventListener('DOMContentLoaded', function () {
             total += item.precio * item.cantidad;
             const itemHTML = `
                 <div class="carrito-item">
-                    <img src="${item.img}" alt="${item.nombre}">
+                    <img src="${obtenerImagenUrl(item.img)}" alt="${item.nombre}" onerror="this.src='img/default.jpg'">
                     <div class="carrito-info">
                         <h6>${item.nombre}</h6>
                         <p>$${item.precio}</p>
