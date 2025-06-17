@@ -3,11 +3,9 @@ header('Content-Type: application/json');
 require_once '../config/database.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Aquí podrías implementar la lógica para notificar al mesero
-    // Por ejemplo, guardar la solicitud en la base de datos
-    $stmt = $pdo->prepare("INSERT INTO solicitudes_mesero (fecha_hora, estado) VALUES (NOW(), 'pendiente')");
-    
     try {
+        // Registrar el llamado del mesero
+        $stmt = $pdo->prepare("INSERT INTO llamados_meseros (id_usuario, id_mesa, estado) VALUES (2, 1, 1)");
         $stmt->execute();
         echo json_encode(['success' => true, 'message' => 'Mesero notificado']);
     } catch(PDOException $e) {

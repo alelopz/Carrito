@@ -12,24 +12,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $pdo->beginTransaction();
                     
                     // Crear el pedido
-                    $id_pedido = uniqid('PED_');
-                    $stmt = $pdo->prepare("INSERT INTO pedidos (id_pedidos, id_ususario, id_clientes, estado, total) 
-                                         VALUES (?, ?, ?, 'pendiente', ?)");
+                    $stmt = $pdo->prepare("INSERT INTO pedidos (id_usuario, id_clientes, id_mesa, estado, total, comentarios) 
+                                         VALUES (?, ?, ?, 'En preparación', ?, ?)");
                     $stmt->execute([
-                        $id_pedido,
                         $data['id_usuario'],
                         $data['id_cliente'],
-                        $data['total']
+                        $data['id_mesa'],
+                        $data['total'],
+                        $data['comentarios'] ?? ''
                     ]);
+                    $id_pedido = $pdo->lastInsertId();
 
                     // Crear los detalles del pedido
-                    $stmt = $pdo->prepare("INSERT INTO detalle_pedidos (id_detalle_pedido, id_pedidos, id_producto, cantidad, precio_unitario) 
-                                         VALUES (?, ?, ?, ?, ?)");
+                    $stmt = $pdo->prepare("INSERT INTO detalle_pedidos (id_pedidos, id_producto, cantidad, precio_unitario) 
+                                         VALUES (?, ?, ?, ?)");
                     
                     foreach ($data['items'] as $item) {
-                        $id_detalle = uniqid('DET_');
                         $stmt->execute([
-                            $id_detalle,
                             $id_pedido,
                             $item['id_producto'],
                             $item['cantidad'],
@@ -38,14 +37,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
 
                     // Registrar el pago
-                    $id_pago = uniqid('PAG_');
-                    $stmt = $pdo->prepare("INSERT INTO pagos (id_pago, id_pedidos, id_usuarios, metodo_pago, Estado_pago, estado, monto) 
-                                         VALUES (?, ?, ?, ?, 'completado', CURDATE(), ?)");
+                    $stmt = $pdo->prepare("INSERT INTO pagos (id_pedidos, id_usuarios, id_metodo_pago, Estado_pago, monto) 
+                                         VALUES (?, ?, ?, 'Pagado', ?)");
                     $stmt->execute([
-                        $id_pago,
                         $id_pedido,
                         $data['id_usuario'],
-                        $data['metodo_pago'],
+                        $data['id_metodo_pago'],
                         $data['total']
                     ]);
 
@@ -76,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_GET['id_pedido'])) {
         // Obtener detalles de un pedido específico
         $stmt = $pdo->prepare("
-            SELECT p.*, dp.*, pr.nombre, pr.img 
+            SELECT p.*, dp.*, pr.nombre, pr.img, pr.descripcion 
             FROM pedidos p 
             JOIN detalle_pedidos dp ON p.id_pedidos = dp.id_pedidos 
             JOIN productos pr ON dp.id_producto = pr.id_producto 

@@ -1,12 +1,14 @@
 document.addEventListener('DOMContentLoaded', function () {
     let carrito = JSON.parse(localStorage.getItem('carrito')) || [];
     let idCarrito = null;
+    let mesaSeleccionada = null;
     const menuProductos = document.getElementById('menuProductos');
     const carritoItems = document.getElementById('carritoItems');
     const totalCarrito = document.getElementById('totalCarrito');
     const carritoContador = document.getElementById('carritoContador');
     const btnRealizarPedido = document.getElementById('btnRealizarPedido');
     const btnMesero = document.getElementById('btnMesero');
+    const selectMesa = document.getElementById('selectMesa');
     const cartelVerCarrito = document.getElementById('cartelVerCarrito');
     const cartelCantidad = document.getElementById('cartelCantidad');
     const cartelTotal = document.getElementById('cartelTotal');
@@ -367,17 +369,54 @@ document.addEventListener('DOMContentLoaded', function () {
     // Ocultar cartel si se cambia el tamaño de pantalla
     window.addEventListener('resize', mostrarCartelVerCarrito);
 
+    // Cargar mesas disponibles
+    async function cargarMesas() {
+        try {
+            const response = await fetch('api/mesas.php');
+            const mesas = await response.json();
+
+            // Limpiar opciones actuales excepto la primera
+            while (selectMesa.options.length > 1) {
+                selectMesa.remove(1);
+            }
+
+            // Agregar mesas disponibles
+            mesas.forEach(mesa => {
+                if (mesa.estado === 'libre') {
+                    const option = document.createElement('option');
+                    option.value = mesa.id;
+                    option.textContent = `Mesa ${mesa.numero_mesa} (${mesa.capacidad} personas)`;
+                    selectMesa.appendChild(option);
+                }
+            });
+        } catch (error) {
+            console.error('Error al cargar mesas:', error);
+        }
+    }
+
+    // Manejar cambio de mesa
+    selectMesa.addEventListener('change', function () {
+        mesaSeleccionada = this.value;
+        btnMesero.disabled = !mesaSeleccionada;
+    });
+
     btnMesero.addEventListener('click', async function () {
         try {
             const response = await fetch('api/llamar_mesero.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
-                }
+                },
+                body: JSON.stringify({
+                    id_mesa: 1, // Mesa por defecto
+                    id_usuario: 1 // Usuario por defecto
+                })
             });
             const data = await response.json();
             if (data.success) {
                 alert('El mesero ha sido notificado y llegará pronto.');
+            } else {
+                alert(data.error || 'Error al llamar al mesero');
             }
         } catch (error) {
             console.error('Error:', error);
@@ -409,4 +448,7 @@ document.addEventListener('DOMContentLoaded', function () {
     inicializarCarrito();
     actualizarCarrito();
     actualizarContadorCarrito();
+
+    // Cargar mesas al iniciar
+    cargarMesas();
 }); 

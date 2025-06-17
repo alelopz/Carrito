@@ -9,19 +9,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         switch ($data['action']) {
             case 'crear':
                 // Crear un nuevo carrito
-                $id_carrito = uniqid('CART_');
-                $stmt = $pdo->prepare("INSERT INTO carrito (id_carrito, cliente, id_usuario) VALUES (?, ?, ?)");
-                $stmt->execute([$id_carrito, $data['cliente'], $data['id_usuario']]);
+                $stmt = $pdo->prepare("INSERT INTO carrito (cliente, id_usuario) VALUES (?, ?)");
+                $stmt->execute([$data['cliente'], $data['id_usuario']]);
+                $id_carrito = $pdo->lastInsertId();
                 echo json_encode(['success' => true, 'id_carrito' => $id_carrito]);
                 break;
 
             case 'agregar':
                 // Agregar producto al carrito
-                $stmt = $pdo->prepare("INSERT INTO detalle_carrito (id_detalle_carrito, id_carrito, id_producto, cantidad, precio_unitario) 
-                                     VALUES (?, ?, ?, ?, ?)");
-                $id_detalle = uniqid('DET_');
+                $stmt = $pdo->prepare("INSERT INTO detalle_carrito (id_carrito, id_producto, cantidad, precio_unitario) 
+                                     VALUES (?, ?, ?, ?)");
                 $stmt->execute([
-                    $id_detalle,
                     $data['id_carrito'],
                     $data['id_producto'],
                     $data['cantidad'],
@@ -63,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_GET['id_carrito'])) {
         // Obtener detalles del carrito
         $stmt = $pdo->prepare("
-            SELECT dc.*, p.nombre, p.img 
+            SELECT dc.*, p.nombre, p.img, p.descripcion 
             FROM detalle_carrito dc 
             JOIN productos p ON dc.id_producto = p.id_producto 
             WHERE dc.id_carrito = ?

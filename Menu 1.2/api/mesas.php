@@ -4,7 +4,7 @@ require_once '../config/database.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // Obtener todas las mesas
-    $stmt = $pdo->query("SELECT * FROM mesa ORDER BY id_mesa");
+    $stmt = $pdo->query("SELECT * FROM mesa ORDER BY numero_mesa");
     $mesas = $stmt->fetchAll();
     echo json_encode($mesas);
 } else if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -13,15 +13,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if (isset($data['action'])) {
         switch ($data['action']) {
             case 'actualizar_estado':
-                $stmt = $pdo->prepare("UPDATE mesa SET estado = ? WHERE id_mesa = ?");
+                $stmt = $pdo->prepare("UPDATE mesa SET estado = ? WHERE id = ?");
                 $stmt->execute([$data['estado'], $data['id_mesa']]);
                 echo json_encode(['success' => true]);
                 break;
 
             case 'crear':
-                $stmt = $pdo->prepare("INSERT INTO mesa (estado, capacidad) VALUES (?, ?)");
-                $stmt->execute(['libre', $data['capacidad']]);
-                echo json_encode(['success' => true, 'id_mesa' => $pdo->lastInsertId()]);
+                $stmt = $pdo->prepare("INSERT INTO mesa (numero_mesa, estado, capacidad) VALUES (?, 'libre', ?)");
+                $stmt->execute([$data['numero_mesa'], $data['capacidad']]);
+                echo json_encode(['success' => true, 'id' => $pdo->lastInsertId()]);
                 break;
 
             default:
