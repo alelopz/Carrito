@@ -126,6 +126,10 @@
         </div>
     </div>
 
+    <!-- Elementos ocultos para compatibilidad con main.js -->
+    <div id="carritoItems" style="display:none"></div>
+    <h4 id="totalCarrito" style="display:none"></h4>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/main.js"></script>
 </body>

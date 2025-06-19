@@ -1,19 +1,18 @@
 document.addEventListener('DOMContentLoaded', function () {
     let carrito = JSON.parse(localStorage.getItem('carrito')) || [];
     let idCarrito = null;
-    let mesaSeleccionada = null;
     const menuProductos = document.getElementById('menuProductos');
     const carritoItems = document.getElementById('carritoItems');
     const totalCarrito = document.getElementById('totalCarrito');
     const carritoContador = document.getElementById('carritoContador');
     const btnRealizarPedido = document.getElementById('btnRealizarPedido');
     const btnMesero = document.getElementById('btnMesero');
-    const selectMesa = document.getElementById('selectMesa');
     const cartelVerCarrito = document.getElementById('cartelVerCarrito');
     const cartelCantidad = document.getElementById('cartelCantidad');
     const cartelTotal = document.getElementById('cartelTotal');
     const btnCartelVerCarrito = document.getElementById('btnCartelVerCarrito');
     const btnVaciarCarrito = document.getElementById('btnVaciarCarrito');
+    const btnCarrito = document.getElementById('btnCarrito');
 
     // Referencias al modal del carrito
     const modalCarrito = document.getElementById('modalCarrito');
@@ -23,6 +22,25 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnRealizarPedidoModal = document.getElementById('btnRealizarPedidoModal');
     const btnCerrarCarrito = document.getElementById('btnCerrarCarrito');
     const btnCerrarCarritoX = document.getElementById('btnCerrarCarritoX');
+
+    // Chequeo de elementos clave
+    const elementosClave = [
+        { id: 'btnVaciarCarritoModal', ref: btnVaciarCarritoModal },
+        { id: 'btnRealizarPedidoModal', ref: btnRealizarPedidoModal },
+        { id: 'btnCerrarCarrito', ref: btnCerrarCarrito },
+        { id: 'btnCerrarCarritoX', ref: btnCerrarCarritoX },
+        { id: 'btnCartelVerCarrito', ref: btnCartelVerCarrito },
+        { id: 'btnCarrito', ref: btnCarrito },
+        { id: 'btnMesero', ref: btnMesero },
+        { id: 'menuProductos', ref: menuProductos },
+        { id: 'carritoItemsModal', ref: carritoItemsModal },
+        { id: 'totalCarritoModal', ref: totalCarritoModal },
+    ];
+    elementosClave.forEach(e => {
+        if (!e.ref) {
+            console.warn('Elemento no encontrado en el HTML:', e.id);
+        }
+    });
 
     // Función para verificar si un elemento existe
     function elementoExiste(elemento) {
@@ -285,162 +303,150 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Botón para vaciar el carrito en el modal
-    btnVaciarCarritoModal.addEventListener('click', async function () {
-        try {
-            await fetch('api/carrito.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    action: 'vaciar',
-                    id_carrito: idCarrito
-                })
-            });
-            carrito = [];
-            localStorage.setItem('carrito', JSON.stringify(carrito));
-            renderizarCarritoModal();
-            actualizarCarrito();
-            actualizarContadorCarrito();
-            mostrarCartelVerCarrito();
-            cerrarModalCarrito();
-            ocultarCartelVerCarrito();
-        } catch (error) {
-            console.error('Error al vaciar carrito:', error);
-        }
-    });
-
-    // Botón para realizar pedido en el modal
-    btnRealizarPedidoModal.addEventListener('click', async function () {
-        if (carrito.length === 0) {
-            alert('El carrito está vacío');
-            return;
-        }
-
-        const total = carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
-        const modalPago = new bootstrap.Modal(document.getElementById('modalPago'));
-        modalPago.show();
-
-        // Configurar el botón de confirmar pago
-        document.getElementById('btnConfirmarPago').onclick = async function () {
-            const metodoPago = document.querySelector('input[name="metodoPago"]:checked')?.value;
-            if (!metodoPago) {
-                alert('Por favor, seleccione un método de pago');
-                return;
-            }
-
+    if (btnVaciarCarritoModal) {
+        btnVaciarCarritoModal.addEventListener('click', async function () {
             try {
-                const response = await fetch('api/pedidos.php', {
+                await fetch('api/carrito.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        action: 'crear',
-                        id_usuario: '1', // Por defecto
-                        id_cliente: 'cliente_' + Math.random().toString(36).substr(2, 9),
-                        total: total,
-                        items: carrito.map(item => ({
-                            id_producto: item.id_producto,
-                            cantidad: item.cantidad,
-                            precio_unitario: item.precio
-                        })),
-                        metodo_pago: metodoPago
+                        action: 'vaciar',
+                        id_carrito: idCarrito
                     })
                 });
+                carrito = [];
+                localStorage.setItem('carrito', JSON.stringify(carrito));
+                renderizarCarritoModal();
+                actualizarCarrito();
+                actualizarContadorCarrito();
+                mostrarCartelVerCarrito();
+                cerrarModalCarrito();
+                ocultarCartelVerCarrito();
+            } catch (error) {
+                console.error('Error al vaciar carrito:', error);
+            }
+        });
+    }
 
-                const data = await response.json();
-                if (data.success) {
-                    alert('Pedido realizado con éxito');
-                    carrito = [];
-                    localStorage.setItem('carrito', JSON.stringify(carrito));
-                    actualizarCarrito();
-                    actualizarContadorCarrito();
-                    cerrarModalCarrito();
-                    modalPago.hide();
-                } else {
+    // Botón para realizar pedido en el modal
+    if (btnRealizarPedidoModal) {
+        btnRealizarPedidoModal.addEventListener('click', async function () {
+            if (carrito.length === 0) {
+                alert('El carrito está vacío');
+                return;
+            }
+
+            const total = carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
+            const modalPago = new bootstrap.Modal(document.getElementById('modalPago'));
+            modalPago.show();
+
+            // Configurar el botón de confirmar pago
+            document.getElementById('btnConfirmarPago').onclick = async function () {
+                const metodoPago = document.querySelector('input[name="metodoPago"]:checked')?.value;
+                if (!metodoPago) {
+                    alert('Por favor, seleccione un método de pago');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('api/pedidos.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            action: 'crear',
+                            id_usuario: '1', // Por defecto
+                            id_cliente: 'cliente_' + Math.random().toString(36).substr(2, 9),
+                            total: total,
+                            items: carrito.map(item => ({
+                                id_producto: item.id_producto,
+                                cantidad: item.cantidad,
+                                precio_unitario: item.precio
+                            })),
+                            metodo_pago: metodoPago
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        alert('Pedido realizado con éxito');
+                        carrito = [];
+                        localStorage.setItem('carrito', JSON.stringify(carrito));
+                        actualizarCarrito();
+                        actualizarContadorCarrito();
+                        cerrarModalCarrito();
+                        modalPago.hide();
+                    } else {
+                        alert('Error al realizar el pedido');
+                    }
+                } catch (error) {
+                    console.error('Error al realizar pedido:', error);
                     alert('Error al realizar el pedido');
                 }
-            } catch (error) {
-                console.error('Error al realizar pedido:', error);
-                alert('Error al realizar el pedido');
-            }
-        };
-    });
+            };
+        });
+    }
 
     // Botones para cerrar el modal
-    btnCerrarCarrito.addEventListener('click', cerrarModalCarrito);
-    btnCerrarCarritoX.addEventListener('click', cerrarModalCarrito);
+    if (btnCerrarCarrito) {
+        btnCerrarCarrito.addEventListener('click', cerrarModalCarrito);
+    }
+    if (btnCerrarCarritoX) {
+        btnCerrarCarritoX.addEventListener('click', cerrarModalCarrito);
+    }
 
     // Abrir modal desde el cartel flotante
-    btnCartelVerCarrito.addEventListener('click', function () {
-        abrirModalCarrito();
-        ocultarCartelVerCarrito();
-    });
+    if (btnCartelVerCarrito) {
+        btnCartelVerCarrito.addEventListener('click', function () {
+            abrirModalCarrito();
+            ocultarCartelVerCarrito();
+        });
+    }
 
     // Si quieres abrir el modal desde un botón de carrito en escritorio
-    const btnCarrito = document.getElementById('btnCarrito');
-    btnCarrito.addEventListener('click', function () {
-        abrirModalCarrito();
-    });
+    if (btnCarrito) {
+        btnCarrito.addEventListener('click', function () {
+            abrirModalCarrito();
+        });
+    }
 
     // Ocultar cartel si se cambia el tamaño de pantalla
     window.addEventListener('resize', mostrarCartelVerCarrito);
 
-    // Cargar mesas disponibles
-    async function cargarMesas() {
-        try {
-            const response = await fetch('api/mesas.php');
-            const mesas = await response.json();
-
-            // Limpiar opciones actuales excepto la primera
-            while (selectMesa.options.length > 1) {
-                selectMesa.remove(1);
-            }
-
-            // Agregar mesas disponibles
-            mesas.forEach(mesa => {
-                if (mesa.estado === 'libre') {
-                    const option = document.createElement('option');
-                    option.value = mesa.id;
-                    option.textContent = `Mesa ${mesa.numero_mesa} (${mesa.capacidad} personas)`;
-                    selectMesa.appendChild(option);
-                }
-            });
-        } catch (error) {
-            console.error('Error al cargar mesas:', error);
-        }
-    }
-
     // Manejar cambio de mesa
-    selectMesa.addEventListener('change', function () {
-        mesaSeleccionada = this.value;
-        btnMesero.disabled = !mesaSeleccionada;
-    });
+    // selectMesa.addEventListener('change', function () {
+    //     mesaSeleccionada = this.value;
+    //     btnMesero.disabled = !mesaSeleccionada;
+    // });
 
-    btnMesero.addEventListener('click', async function () {
-        try {
-            const response = await fetch('api/llamar_mesero.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    id_mesa: 1, // Mesa por defecto
-                    id_usuario: 1 // Usuario por defecto
-                })
-            });
-            const data = await response.json();
-            if (data.success) {
-                alert('El mesero ha sido notificado y llegará pronto.');
-            } else {
-                alert(data.error || 'Error al llamar al mesero');
+    if (btnMesero) {
+        btnMesero.addEventListener('click', async function () {
+            try {
+                const response = await fetch('api/llamar_mesero.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        id_mesa: 1, // Mesa por defecto
+                        id_usuario: 1 // Usuario por defecto
+                    })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    alert('El mesero ha sido notificado y llegará pronto.');
+                } else {
+                    alert(data.error || 'Error al llamar al mesero');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al llamar al mesero');
             }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Error al llamar al mesero');
-        }
-    });
+        });
+    }
 
     // Cargar productos
     fetch('api/productos.php')
@@ -468,5 +474,5 @@ document.addEventListener('DOMContentLoaded', function () {
     actualizarContadorCarrito();
 
     // Cargar mesas al iniciar
-    cargarMesas();
+    // cargarMesas(); // ELIMINADO: el cliente no elige mesa
 }); 
